@@ -1,1 +1,95 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #05050a;
+  --color-surface: #0a0b12;
+  --color-surface-2: #0f1018;
+  --color-border: #1a1b2e;
+  --color-border-light: #252640;
+  --color-text: #c8c8d4;
+  --color-text-muted: #6a6a8a;
+  --color-text-dim: #3a3a55;
+  --color-neon-cyan: #00f0ff;
+  --color-neon-magenta: #ff00aa;
+  --color-neon-green: #39ff14;
+  --color-neon-yellow: #f0ff00;
+  --color-accent: #00f0ff;
+  --color-accent-muted: #006a70;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.8; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 240, 255, 0.015) 2px,
+    rgba(0, 240, 255, 0.015) 4px
+  );
+}
+
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-cyan);
+  opacity: 0.3;
+}
+
+/* Neon glow utilities */
+.glow-cyan {
+  text-shadow: 0 0 7px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.3);
+}
+.glow-magenta {
+  text-shadow: 0 0 7px rgba(255, 0, 170, 0.6), 0 0 20px rgba(255, 0, 170, 0.3);
+}
+.glow-green {
+  text-shadow: 0 0 7px rgba(57, 255, 20, 0.6), 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+.border-glow-cyan {
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.15), inset 0 0 8px rgba(0, 240, 255, 0.05);
+}
+.border-glow-magenta {
+  box-shadow: 0 0 8px rgba(255, 0, 170, 0.15), inset 0 0 8px rgba(255, 0, 170, 0.05);
+}

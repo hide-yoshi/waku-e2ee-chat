@@ -8,6 +8,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Polyfill for Node.js libraries (simple-peer, etc.) that reference `global`
+      if (typeof globalThis !== 'undefined') window.global = globalThis;
+      else window.global = window;
+      // Buffer polyfill check
+      if (typeof window.process === 'undefined') window.process = { env: {} };
+      if (typeof window.process.nextTick === 'undefined') {
+        window.process.nextTick = function(fn) {
+          var args = Array.prototype.slice.call(arguments, 1);
+          Promise.resolve().then(function() { fn.apply(null, args); });
+        };
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

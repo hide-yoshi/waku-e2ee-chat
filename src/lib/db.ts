@@ -1,14 +1,14 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChatMessage, Room } from '../types';
+import type { ChatMessage, Contact } from '../types';
 
 const db = new Dexie('e2ee-chat') as Dexie & {
   messages: EntityTable<ChatMessage, 'id'>;
-  rooms: EntityTable<Room, 'id'>;
+  contacts: EntityTable<Contact, 'address'>;
 };
 
-db.version(1).stores({
-  messages: 'id, roomId, timestamp, senderAddress',
-  rooms: 'id, createdAt',
+db.version(2).stores({
+  messages: 'id, conversationId, timestamp, senderAddress',
+  contacts: 'address, addedAt',
 });
 
 export { db };

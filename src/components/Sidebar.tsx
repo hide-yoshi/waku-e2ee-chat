@@ -1,138 +1,103 @@
-import { useState } from 'react';
-import type { Room } from '../types';
+import type { Contact } from '../types';
 
 interface Props {
   address: string;
-  rooms: Room[];
-  currentRoomId: string | null;
-  connectedPeers: string[];
-  onSelectRoom: (id: string) => void;
-  onCreateRoom: (name: string) => void;
-  onOpenConnect: () => void;
-  onOpenInvite: () => void;
-  onOpenBackup: () => void;
+  contacts: Contact[];
+  currentContact: string | null;
+  wakuReady: boolean;
+  onSelectContact: (address: string) => void;
+  newAddress: string;
+  onNewAddressChange: (value: string) => void;
+  onAddContact: () => void;
+  addingContact: boolean;
+  addError: string;
 }
 
 function shortenAddress(addr: string) {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  return `${addr.slice(0, 6)}..${addr.slice(-4)}`;
 }
 
 export function Sidebar({
   address,
-  rooms,
-  currentRoomId,
-  connectedPeers,
-  onSelectRoom,
-  onCreateRoom,
-  onOpenConnect,
-  onOpenInvite,
-  onOpenBackup,
+  contacts,
+  currentContact,
+  wakuReady,
+  onSelectContact,
+  newAddress,
+  onNewAddressChange,
+  onAddContact,
+  addingContact,
+  addError,
 }: Props) {
-  const [newRoomName, setNewRoomName] = useState('');
-  const [showNewRoom, setShowNewRoom] = useState(false);
-
-  const handleCreate = () => {
-    if (newRoomName.trim()) {
-      onCreateRoom(newRoomName.trim());
-      setNewRoomName('');
-      setShowNewRoom(false);
-    }
-  };
-
   return (
-    <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="text-xs text-gray-500">Connected as</div>
-        <div className="text-sm font-mono text-indigo-400">{shortenAddress(address)}</div>
+    <div className="w-60 bg-surface border-r border-border flex flex-col h-full">
+      {/* Identity */}
+      <div className="px-4 py-4 border-b border-border">
+        <div className="text-[9px] uppercase tracking-[0.3em] text-neon-cyan/30 mb-1">node</div>
+        <div className="text-xs font-mono text-neon-cyan/70 glow-cyan">{shortenAddress(address)}</div>
+        <div className="mt-2 flex items-center gap-1.5">
+          <div
+            className={`w-1.5 h-1.5 rounded-full ${wakuReady ? 'bg-neon-green' : 'bg-neon-yellow animate-pulse'}`}
+          />
+          <span className={`text-[9px] uppercase tracking-wider ${wakuReady ? 'text-neon-green/50' : 'text-neon-yellow/50'}`}>
+            {wakuReady ? 'waku connected' : 'connecting...'}
+          </span>
+        </div>
       </div>
 
-      {/* Peers */}
-      <div className="px-4 py-2 border-b border-gray-800">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            Peers ({connectedPeers.length})
-          </span>
+      {/* Add Contact */}
+      <div className="px-4 py-3 border-b border-border">
+        <div className="text-[9px] uppercase tracking-[0.3em] text-text-dim mb-2">add contact</div>
+        <div className="flex gap-1">
+          <input
+            value={newAddress}
+            onChange={(e) => onNewAddressChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onAddContact()}
+            placeholder="0x..."
+            disabled={!wakuReady || addingContact}
+            className="flex-1 bg-bg text-[10px] text-text-muted px-2 py-1.5
+                       border border-border font-mono
+                       focus:outline-none focus:border-neon-cyan/30
+                       placeholder:text-text-dim disabled:opacity-30
+                       caret-neon-cyan"
+          />
           <button
-            onClick={onOpenConnect}
-            className="text-xs text-indigo-400 hover:text-indigo-300"
+            onClick={onAddContact}
+            disabled={!wakuReady || addingContact || !newAddress.trim()}
+            className="text-[9px] text-neon-cyan/50 hover:text-neon-cyan
+                       disabled:opacity-30 transition-colors px-1"
           >
-            + Connect
+            {addingContact ? '...' : '[add]'}
           </button>
         </div>
-        {connectedPeers.map((p) => (
-          <div key={p} className="text-xs font-mono text-green-400 mt-1">
-            {shortenAddress(p)}
-          </div>
-        ))}
+        {addError && (
+          <div className="text-[9px] text-neon-magenta/70 mt-1">{addError}</div>
+        )}
       </div>
 
-      {/* Rooms */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">Rooms</span>
+      {/* Contacts */}
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        <div className="text-[9px] uppercase tracking-[0.3em] text-text-dim mb-3">
+          contacts [{contacts.length}]
+        </div>
+        <div className="space-y-0.5">
+          {contacts.map((contact) => (
             <button
-              onClick={() => setShowNewRoom(!showNewRoom)}
-              className="text-xs text-indigo-400 hover:text-indigo-300"
-            >
-              + New
-            </button>
-          </div>
-
-          {showNewRoom && (
-            <div className="flex gap-1 mb-2">
-              <input
-                value={newRoomName}
-                onChange={(e) => setNewRoomName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                placeholder="Room name"
-                className="flex-1 bg-gray-800 text-sm text-white px-2 py-1 rounded border border-gray-700"
-              />
-              <button
-                onClick={handleCreate}
-                className="px-2 py-1 text-xs bg-indigo-600 rounded hover:bg-indigo-700"
-              >
-                OK
-              </button>
-            </div>
-          )}
-
-          {rooms.map((room) => (
-            <button
-              key={room.id}
-              onClick={() => onSelectRoom(room.id)}
-              className={`w-full text-left px-3 py-2 rounded text-sm mb-1 transition-colors ${
-                currentRoomId === room.id
-                  ? 'bg-indigo-600/20 text-indigo-300'
-                  : 'text-gray-300 hover:bg-gray-800'
+              key={contact.address}
+              onClick={() => onSelectContact(contact.address)}
+              className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${
+                currentContact === contact.address
+                  ? 'bg-neon-cyan/10 text-neon-cyan border-l-2 border-neon-cyan'
+                  : 'text-text-muted hover:bg-surface-hover hover:text-text border-l-2 border-transparent'
               }`}
             >
-              {room.name}
-              <span className="text-xs text-gray-500 ml-1">
-                ({room.members.length})
-              </span>
+              {shortenAddress(contact.address)}
             </button>
           ))}
+          {contacts.length === 0 && (
+            <div className="text-[10px] text-text-dim italic">no contacts yet</div>
+          )}
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="p-4 border-t border-gray-800 space-y-2">
-        {currentRoomId && (
-          <button
-            onClick={onOpenInvite}
-            className="w-full px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded transition-colors"
-          >
-            Invite to Room
-          </button>
-        )}
-        <button
-          onClick={onOpenBackup}
-          className="w-full px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 rounded transition-colors"
-        >
-          Backup / Restore
-        </button>
       </div>
     </div>
   );

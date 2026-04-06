@@ -1,10 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { WalletConnect } from './components/WalletConnect';
 import { Sidebar } from './components/Sidebar';
 import { ChatView } from './components/ChatView';
-import { ConnectPeerModal } from './components/ConnectPeerModal';
-import { InviteModal } from './components/InviteModal';
-import { BackupRestore } from './components/BackupRestore';
 import { useChat } from './hooks/useChat';
 
 interface Identity {
@@ -16,93 +13,63 @@ interface Identity {
 
 function ChatApp({ identity }: { identity: Identity }) {
   const {
-    rooms,
-    currentRoomId,
-    setCurrentRoomId,
+    contacts,
+    currentContact,
+    setCurrentContact,
     messages,
-    connectedPeers,
-    peerManager,
-    initPeerManager,
-    createRoom,
-    invitePeer,
+    wakuReady,
+    addContact,
     sendMessage,
-    sendFile,
   } = useChat(identity);
 
-  const [showConnect, setShowConnect] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
-  const [showBackup, setShowBackup] = useState(false);
+  const [addingContact, setAddingContact] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [addError, setAddError] = useState('');
 
-  const currentRoom = rooms.find((r) => r.id === currentRoomId);
-
-  const handleOpenConnect = useCallback(() => {
-    initPeerManager();
-    setShowConnect(true);
-  }, [initPeerManager]);
+  const handleAddContact = async () => {
+    if (!newAddress.trim()) return;
+    setAddingContact(true);
+    setAddError('');
+    const ok = await addContact(newAddress.trim());
+    if (!ok) {
+      setAddError('pre-key bundle not found');
+    }
+    setAddingContact(false);
+    if (ok) setNewAddress('');
+  };
 
   return (
-    <div className="flex h-screen bg-gray-950 text-white">
+    <div className="flex h-screen bg-bg text-text">
       <Sidebar
         address={identity.address}
-        rooms={rooms}
-        currentRoomId={currentRoomId}
-        connectedPeers={connectedPeers}
-        onSelectRoom={setCurrentRoomId}
-        onCreateRoom={(name) => createRoom(name)}
-        onOpenConnect={handleOpenConnect}
-        onOpenInvite={() => setShowInvite(true)}
-        onOpenBackup={() => setShowBackup(true)}
+        contacts={contacts}
+        currentContact={currentContact}
+        wakuReady={wakuReady}
+        onSelectContact={setCurrentContact}
+        newAddress={newAddress}
+        onNewAddressChange={setNewAddress}
+        onAddContact={handleAddContact}
+        addingContact={addingContact}
+        addError={addError}
       />
 
       <div className="flex-1 flex flex-col">
-        {currentRoom ? (
+        {currentContact ? (
           <ChatView
             messages={messages}
             currentAddress={identity.address}
-            roomName={currentRoom.name}
-            groupKeyStr={currentRoom.groupKey}
+            peerAddress={currentContact}
             onSendMessage={sendMessage}
-            onSendFile={sendFile}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-2">
-              <p className="text-lg">Select or create a room to start chatting</p>
-              <p className="text-sm">Connect to peers first, then create a room and invite them</p>
+              <p className="text-sm text-text-muted">no conversation selected</p>
+              <p className="text-xs text-text-dim">add a contact by wallet address to start chatting</p>
             </div>
           </div>
         )}
       </div>
-
-      {showConnect && peerManager.current && (
-        <ConnectPeerModal
-          peerManager={peerManager.current}
-          address={identity.address}
-          publicKeyJwk={identity.publicKeyJwk}
-          signature={identity.signature}
-          onClose={() => setShowConnect(false)}
-          onConnected={() => {}}
-        />
-      )}
-
-      {showInvite && currentRoom && (
-        <InviteModal
-          room={currentRoom}
-          connectedPeers={connectedPeers}
-          onInvite={(addr) => {
-            invitePeer(currentRoom.id, addr);
-            setShowInvite(false);
-          }}
-          onClose={() => setShowInvite(false)}
-        />
-      )}
-
-      {showBackup && (
-        <BackupRestore
-          rooms={rooms}
-          onClose={() => setShowBackup(false)}
-        />
-      )}
     </div>
   );
 }
