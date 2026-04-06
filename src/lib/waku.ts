@@ -153,16 +153,20 @@ export class WakuTransport {
       const timer = setTimeout(() => {
         if (!resolved) {
           resolved = true;
+          console.log('[waku] fetchPreKeyBundle timed out after', timeoutMs, 'ms');
           resolve(null);
         }
       }, timeoutMs);
 
       this.subscribe(topic, (data) => {
+        console.log('[waku] fetchPreKeyBundle received data via filter:', !!data);
         if (!resolved) {
           resolved = true;
           clearTimeout(timer);
           resolve(data as PreKeyBundle);
         }
+      }).then(() => {
+        console.log('[waku] fetchPreKeyBundle filter subscription ready');
       });
     });
   }

@@ -76,8 +76,15 @@ export function useChat(identity: Identity) {
   // Handle incoming wire messages
   const handleMessage = useCallback(
     async (msg: WireMessage) => {
-      if (msg.senderAddress === identity.address) return;
-      if (msg.messageId && !isNewMessage(msg.messageId)) return;
+      console.log('[handleMessage] kind:', msg.kind, 'from:', msg.senderAddress, 'myAddr:', identity.address);
+      if (msg.senderAddress === identity.address) {
+        console.log('[handleMessage] skipping own message');
+        return;
+      }
+      if (msg.messageId && !isNewMessage(msg.messageId)) {
+        console.log('[handleMessage] skipping duplicate:', msg.messageId);
+        return;
+      }
 
       if (msg.kind === 'x3dh-init') {
         // X3DH initial message: derive shared key and save contact
@@ -141,10 +148,19 @@ export function useChat(identity: Identity) {
 
   async function handleChatMessage(msg: WireMessage) {
     const contact = await db.contacts.get(msg.senderAddress);
-    if (!contact) return;
+    if (!contact) {
+      console.log('[chat] no contact found for', msg.senderAddress);
+      return;
+    }
 
-    const sharedKey = await importAESKey(contact.sharedKey);
-    const plaintext = await decrypt(sharedKey, msg.iv, msg.payload);
+    let plaintext: string;
+    try {
+      const sharedKey = await importAESKey(contact.sharedKey);
+      plaintext = await decrypt(sharedKey, msg.iv, msg.payload);
+    } catch (err) {
+      console.error('[chat] decrypt failed:', err);
+      return;
+    }
     const parsed = JSON.parse(plaintext);
 
     const chatMsg: ChatMessage = {
@@ -211,7 +227,7 @@ export function useChat(identity: Identity) {
 
       // Publish pre-key bundle (and re-publish periodically for Filter-based discovery)
       await waku.publishPreKeyBundle(bundle);
-      const republishInterval = setInterval(() => {
+      setInterval(() => {
         if (!cancelled) {
           waku.publishPreKeyBundle({ ...bundle, timestamp: Date.now() });
         }
@@ -240,10 +256,7 @@ export function useChat(identity: Identity) {
       }
     }
 
-    let republishInterval: ReturnType<typeof setInterval> | undefined;
-    setup().then(() => {
-      // republishInterval is set inside setup, but we capture it for cleanup
-    });
+    setup();
     return () => {
       cancelled = true;
       wakuRef.current?.destroy();

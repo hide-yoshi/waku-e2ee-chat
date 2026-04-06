@@ -1,3 +1,5 @@
+import { p256 } from '@noble/curves/nist.js';
+
 const ECDH_PARAMS: EcKeyGenParams = { name: 'ECDH', namedCurve: 'P-256' };
 const AES_PARAMS = { name: 'AES-GCM', length: 256 } as const;
 
@@ -18,6 +20,46 @@ function fromBase64(b64: string): ArrayBuffer {
 export async function generateECDHKeyPair(): Promise<CryptoKeyPair> {
   return crypto.subtle.generateKey(ECDH_PARAMS, true, ['deriveKey', 'deriveBits']);
 }
+
+// Derive a deterministic ECDH key pair from a seed (e.g. wallet signature hash).
+// Uses the seed as the private key scalar `d` for P-256.
+// The seed must be 32 bytes of high-entropy data.
+export async function deriveECDHKeyPairFromSeed(seed: Uint8Array): Promise<CryptoKeyPair> {
+  // Use @noble/curves to compute the public point from seed as private scalar
+  const pubBytes = p256.getPublicKey(seed, false); // uncompressed: 0x04 || x(32) || y(32)
+  const xBytes = pubBytes.slice(1, 33);
+  const yBytes = pubBytes.slice(33, 65);
+
+  const d = bytesToUrlBase64(seed);
+  const x = bytesToUrlBase64(xBytes);
+  const y = bytesToUrlBase64(yBytes);
+
+  const privateKey = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'EC', crv: 'P-256', d, x, y, ext: true },
+    ECDH_PARAMS,
+    true,
+    ['deriveKey', 'deriveBits']
+  );
+
+  const publicKey = await crypto.subtle.importKey(
+    'jwk',
+    { kty: 'EC', crv: 'P-256', x, y, ext: true },
+    ECDH_PARAMS,
+    true,
+    []
+  );
+
+  return { privateKey, publicKey };
+}
+
+function bytesToUrlBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 
 export async function exportPublicKey(key: CryptoKey): Promise<JsonWebKey> {
   return crypto.subtle.exportKey('jwk', key);
