@@ -1,4 +1,4 @@
-# P2P E2EE Chat
+# Waku E2EE Chat
 
 Serverless, end-to-end encrypted peer-to-peer 1-on-1 chat application. No backend, no signaling server. Uses Waku (libp2p) for P2P messaging, MetaMask for identity, and X3DH for key exchange.
 
